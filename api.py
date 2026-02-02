@@ -95,6 +95,9 @@ class DateToUpdate(BaseModel):
 class LastDaysUpdate(BaseModel):
     last_days: int
 
+class ApifyTokenUpdate(BaseModel):
+    apify_token: str
+
 # ==================== PROFILES ENDPOINTS ====================
 
 @app.get("/api/profiles", response_model=List[ProfileResponse])
@@ -250,10 +253,10 @@ def get_config():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/config/apify-token")
-def update_apify_token(token: str):
+def update_apify_token(request: ApifyTokenUpdate):
     """Update Apify token."""
     try:
-        set_apify_token(token)
+        set_apify_token(request.apify_token)
         return {"success": True, "message": "Token updated successfully"}
     except Exception as e:
         logger.error(f"Error updating token: {e}")
