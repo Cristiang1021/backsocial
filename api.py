@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 import logging
+import os
 
 # Import existing modules
 from config import (
@@ -42,14 +43,19 @@ app = FastAPI(
 
 # CORS middleware
 # Production frontend URL
-PRODUCTION_FRONTEND_URL = "https://frontsocial-777z1xvr4-cristiang1021s-projects.vercel.app"
+PRODUCTION_FRONTEND_URL = "https://frontsocial.vercel.app"
 
 # Allowed origins: production frontend + localhost for development
-allowed_origins = [
+default_allowed_origins = [
     PRODUCTION_FRONTEND_URL,
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
+env_allowed_origins = os.getenv("ALLOWED_ORIGINS")
+if env_allowed_origins:
+    allowed_origins = [origin.strip() for origin in env_allowed_origins.split(",") if origin.strip()]
+else:
+    allowed_origins = default_allowed_origins
 
 app.add_middleware(
     CORSMiddleware,
