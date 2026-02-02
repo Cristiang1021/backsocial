@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: social-media-analytics-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: ALLOWED_ORIGINS
+        sync: false  # Set this manually in Render dashboard with your frontend URL
+      # Add your APIFY_TOKEN in Render dashboard environment variables
+      # Do not add sensitive tokens here
