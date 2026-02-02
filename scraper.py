@@ -12,7 +12,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 from config import (
     get_apify_token, get_actor_id, get_default_limit_posts,
     get_default_limit_comments, get_auto_skip_recent,
-    get_tiktok_date_from, get_tiktok_date_to, get_tiktok_last_days
+    get_date_from, get_date_to, get_last_days
 )
 from db_utils import (
     get_all_profiles, update_profile_last_analyzed, insert_post, insert_comment
@@ -117,11 +117,11 @@ class ApifyScraper:
         - TikTok actor's date filter is too aggressive and discards too many videos
         - Instagram actor doesn't support date filters
         """
-        from config import get_tiktok_last_days, get_tiktok_date_from, get_tiktok_date_to
+        from config import get_last_days, get_date_from, get_date_to
         
-        last_days = get_tiktok_last_days()
-        date_from_str = get_tiktok_date_from()
-        date_to_str = get_tiktok_date_to()
+        last_days = get_last_days()
+        date_from_str = get_date_from()
+        date_to_str = get_date_to()
         
         # If no filters configured, return all items
         if (not last_days or last_days == 0) and not date_from_str and not date_to_str:
@@ -251,10 +251,10 @@ class ApifyScraper:
             }
             
             # Apply date filter to actor if configured (saves tokens)
-            from config import get_tiktok_last_days, get_tiktok_date_from, get_tiktok_date_to
-            last_days = get_tiktok_last_days()
-            date_from_str = get_tiktok_date_from()
-            date_to_str = get_tiktok_date_to()
+            from config import get_last_days, get_date_from, get_date_to
+            last_days = get_last_days()
+            date_from_str = get_date_from()
+            date_to_str = get_date_to()
             
             # Calculate onlyPostsNewerThan date (Instagram actor supports this parameter)
             if last_days and last_days > 0:
@@ -275,10 +275,10 @@ class ApifyScraper:
             comments_limit = get_default_limit_comments()
             
             # Check if date filters are active
-            from config import get_tiktok_last_days, get_tiktok_date_from, get_tiktok_date_to
-            last_days = get_tiktok_last_days()
-            date_from_str = get_tiktok_date_from()
-            date_to_str = get_tiktok_date_to()
+            from config import get_last_days, get_date_from, get_date_to
+            last_days = get_last_days()
+            date_from_str = get_date_from()
+            date_to_str = get_date_to()
             
             has_date_filter = (last_days and last_days > 0) or date_from_str or date_to_str
             
@@ -354,11 +354,10 @@ class ApifyScraper:
             items = self._get_actor_dataset(run)
             logger.info(f"Retrieved {len(items)} posts from actor")
             
-            # Filter by date manually for TikTok and Instagram
-            # (TikTok actor's date filter is too aggressive, Instagram doesn't support date filters in actor)
-            if platform.lower() in ["tiktok", "instagram"]:
-                items = self._filter_posts_by_date(items, platform)
-                logger.info(f"After date filtering: {len(items)} posts")
+            # Filter by date manually for ALL platforms
+            # (TikTok actor's date filter is too aggressive, Instagram doesn't support date filters in actor, Facebook needs manual filtering)
+            items = self._filter_posts_by_date(items, platform)
+            logger.info(f"After date filtering: {len(items)} posts")
             
             return items
         except Exception as e:
@@ -640,12 +639,12 @@ class ApifyScraper:
         """
         # Check if should skip (analyzed recently)
         # BUT: Skip auto-skip if date filters are configured (respect date filters strictly)
-        has_date_filters = False
-        if platform.lower() == "tiktok":
-            last_days = get_tiktok_last_days()
-            date_from = get_tiktok_date_from()
-            date_to = get_tiktok_date_to()
-            has_date_filters = (last_days and last_days > 0) or date_from or date_to
+        # Date filters apply to ALL platforms now
+        from config import get_last_days, get_date_from, get_date_to
+        last_days = get_last_days()
+        date_from = get_date_from()
+        date_to = get_date_to()
+        has_date_filters = (last_days and last_days > 0) or date_from or date_to
         
         if not force and get_auto_skip_recent() and not has_date_filters:
             # Only apply auto-skip if no date filters are configured

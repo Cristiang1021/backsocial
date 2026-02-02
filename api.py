@@ -16,8 +16,8 @@ from config import (
     set_keywords_negative, get_keywords_negative, set_actor_id, get_actor_id,
     set_default_limit_posts, get_default_limit_posts, set_default_limit_comments,
     get_default_limit_comments, set_auto_skip_recent, get_auto_skip_recent,
-    set_tiktok_date_from, get_tiktok_date_from, set_tiktok_date_to, get_tiktok_date_to,
-    set_tiktok_last_days, get_tiktok_last_days
+    set_date_from, get_date_from, set_date_to, get_date_to,
+    set_last_days, get_last_days
 )
 from db_utils import (
     get_all_profiles, add_profile, delete_profile,
@@ -41,11 +41,15 @@ app = FastAPI(
 )
 
 # CORS middleware
-import os
+# Production frontend URL
+PRODUCTION_FRONTEND_URL = "https://frontsocial-777z1xvr4-cristiang1021s-projects.vercel.app"
 
-# Get allowed origins from environment variable or use defaults for local development
-allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
-allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",") if origin.strip()]
+# Allowed origins: production frontend + localhost for development
+allowed_origins = [
+    PRODUCTION_FRONTEND_URL,
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
 
 app.add_middleware(
     CORSMiddleware,
@@ -75,6 +79,15 @@ class AnalysisRequest(BaseModel):
 class ConfigUpdate(BaseModel):
     key: str
     value: Any
+
+class DateFromUpdate(BaseModel):
+    date_from: Optional[str] = None
+
+class DateToUpdate(BaseModel):
+    date_to: Optional[str] = None
+
+class LastDaysUpdate(BaseModel):
+    last_days: int
 
 # ==================== PROFILES ENDPOINTS ====================
 
@@ -248,6 +261,36 @@ def update_actor_id(platform: str, actor_type: str, actor_id: str):
         return {"success": True, "message": "Actor ID updated successfully"}
     except Exception as e:
         logger.error(f"Error updating actor ID: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/config/date-from")
+def update_date_from(request: DateFromUpdate):
+    """Update date filter from for ALL platforms (YYYY-MM-DD format or None)."""
+    try:
+        set_date_from(request.date_from if request.date_from else None)
+        return {"success": True, "message": "Date from updated successfully"}
+    except Exception as e:
+        logger.error(f"Error updating date from: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/config/date-to")
+def update_date_to(request: DateToUpdate):
+    """Update date filter to for ALL platforms (YYYY-MM-DD format or None)."""
+    try:
+        set_date_to(request.date_to if request.date_to else None)
+        return {"success": True, "message": "Date to updated successfully"}
+    except Exception as e:
+        logger.error(f"Error updating date to: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/config/last-days")
+def update_last_days(request: LastDaysUpdate):
+    """Update last N days filter for ALL platforms (0 = no filter)."""
+    try:
+        set_last_days(int(request.last_days))
+        return {"success": True, "message": "Last days updated successfully"}
+    except Exception as e:
+        logger.error(f"Error updating last days: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # ==================== STATS ENDPOINTS ====================

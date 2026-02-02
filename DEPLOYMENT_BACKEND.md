@@ -45,14 +45,13 @@ git push -u origin main
    - Click en "Environment" tab
    - Agrega las siguientes variables:
      ```
-     ALLOWED_ORIGINS=https://tu-frontend.vercel.app,http://localhost:3000
-     APIFY_TOKEN=tu_token_de_apify_aqui
-     PYTHON_VERSION=3.11.0
+     ALLOWED_ORIGINS=http://localhost:3000
+     PYTHON_VERSION=3.11.0 (opcional)
      ```
    - ⚠️ **IMPORTANTE**: 
-     - Reemplaza `tu-frontend.vercel.app` con la URL real de tu frontend (puedes actualizarlo después)
-     - El `APIFY_TOKEN` es tu token real de Apify
-     - Puedes dejar `http://localhost:3000` para desarrollo local
+     - **NO agregues `APIFY_TOKEN` aquí** - El token se configura desde la interfaz web en la página de Configuración
+     - Reemplaza `http://localhost:3000` con la URL de tu frontend después de desplegarlo en Vercel
+     - Puedes actualizar `ALLOWED_ORIGINS` después con la URL de Vercel
 
 5. **Guarda y despliega**
    - Render comenzará a construir y desplegar tu aplicación
@@ -72,7 +71,19 @@ git push -u origin main
    - En Render Dashboard → Logs
    - Deberías ver que el servidor está corriendo sin errores
 
-## 🔄 Paso 4: Actualizar CORS después de desplegar el frontend
+## 🔄 Paso 4: Configurar el Token de Apify
+
+**IMPORTANTE**: El token de Apify NO se configura en Render, sino desde la interfaz web:
+
+1. **Despliega el frontend en Vercel** (verás cómo en el siguiente paso)
+2. **Abre tu aplicación en Vercel**
+3. **Ve a la página "Configuración"** (⚙️)
+4. **Pega tu token de Apify** en el campo correspondiente
+5. **Guarda** - El token se guardará en la base de datos
+
+Esto permite cambiar el token fácilmente cuando se acabe el plan gratuito, sin necesidad de tocar Render.
+
+## 🔄 Paso 5: Actualizar CORS después de desplegar el frontend
 
 Una vez que tengas la URL de tu frontend desplegado:
 

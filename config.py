@@ -20,9 +20,9 @@ DEFAULT_CONFIG = {
     "default_limit_posts": 50,
     "default_limit_comments": 200,
     "auto_skip_recent": True,  # Skip profiles analyzed in last 7 days
-    "tiktok_date_from": None,  # Filter TikTok posts from this date (YYYY-MM-DD format, None = no filter)
-    "tiktok_date_to": None,  # Filter TikTok posts to this date (YYYY-MM-DD format, None = no filter)
-    "tiktok_last_days": 7,  # Alternative: filter by last N days (0 = no filter)
+    "date_from": None,  # Filter posts from this date for ALL platforms (YYYY-MM-DD format, None = no filter)
+    "date_to": None,  # Filter posts to this date for ALL platforms (YYYY-MM-DD format, None = no filter)
+    "last_days": 7,  # Alternative: filter by last N days for ALL platforms (0 = no filter)
 }
 
 
@@ -124,39 +124,39 @@ def set_auto_skip_recent(enabled: bool) -> None:
     set_config("auto_skip_recent", enabled)
 
 
-def get_tiktok_date_from() -> Optional[str]:
-    """Get TikTok filter date from (YYYY-MM-DD format)."""
-    return get_config("tiktok_date_from", DEFAULT_CONFIG["tiktok_date_from"])
+def get_date_from() -> Optional[str]:
+    """Get date filter from for ALL platforms (YYYY-MM-DD format)."""
+    return get_config("date_from", DEFAULT_CONFIG["date_from"])
 
 
-def set_tiktok_date_from(date_str: Optional[str]) -> None:
-    """Set TikTok filter date from (YYYY-MM-DD format or None)."""
-    set_config("tiktok_date_from", date_str)
+def set_date_from(date_str: Optional[str]) -> None:
+    """Set date filter from for ALL platforms (YYYY-MM-DD format or None)."""
+    set_config("date_from", date_str)
 
 
-def get_tiktok_date_to() -> Optional[str]:
-    """Get TikTok filter date to (YYYY-MM-DD format)."""
-    return get_config("tiktok_date_to", DEFAULT_CONFIG["tiktok_date_to"])
+def get_date_to() -> Optional[str]:
+    """Get date filter to for ALL platforms (YYYY-MM-DD format)."""
+    return get_config("date_to", DEFAULT_CONFIG["date_to"])
 
 
-def set_tiktok_date_to(date_str: Optional[str]) -> None:
-    """Set TikTok filter date to (YYYY-MM-DD format or None)."""
-    set_config("tiktok_date_to", date_str)
+def set_date_to(date_str: Optional[str]) -> None:
+    """Set date filter to for ALL platforms (YYYY-MM-DD format or None)."""
+    set_config("date_to", date_str)
 
 
-def get_tiktok_last_days() -> int:
-    """Get TikTok filter by last N days (0 = no filter)."""
-    value = get_config("tiktok_last_days", DEFAULT_CONFIG["tiktok_last_days"])
+def get_last_days() -> int:
+    """Get last N days filter for ALL platforms (0 = no filter)."""
+    value = get_config("last_days", DEFAULT_CONFIG["last_days"])
     # Ensure it's an integer (config might store as string)
     try:
-        return int(value) if value is not None else DEFAULT_CONFIG["tiktok_last_days"]
+        return int(value) if value is not None else DEFAULT_CONFIG["last_days"]
     except (ValueError, TypeError):
-        return DEFAULT_CONFIG["tiktok_last_days"]
+        return DEFAULT_CONFIG["last_days"]
 
 
-def set_tiktok_last_days(days: int) -> None:
-    """Set TikTok filter by last N days (0 = no filter)."""
-    set_config("tiktok_last_days", days)
+def set_last_days(days: int) -> None:
+    """Set last N days filter for ALL platforms (0 = no filter)."""
+    set_config("last_days", days)
 
 
 def get_all_config() -> Dict[str, Any]:
@@ -175,7 +175,7 @@ def get_all_config() -> Dict[str, Any]:
         "default_limit_posts": get_default_limit_posts(),
         "default_limit_comments": get_default_limit_comments(),
         "auto_skip_recent": get_auto_skip_recent(),
-        "tiktok_date_from": get_tiktok_date_from(),
-        "tiktok_date_to": get_tiktok_date_to(),
-        "tiktok_last_days": get_tiktok_last_days(),
+        "date_from": get_date_from(),
+        "date_to": get_date_to(),
+        "last_days": get_last_days(),
     }
