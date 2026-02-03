@@ -196,6 +196,27 @@ class ApifyScraper:
                     except Exception as e:
                         logger.debug(f"Could not parse Instagram timestamp: {item.get('timestamp')}, error: {e}")
                         pass
+            elif platform.lower() == "facebook":
+                # Facebook uses timestamp (Unix timestamp or ISO string) or createdAt (ISO string)
+                if "timestamp" in item:
+                    try:
+                        timestamp_value = item["timestamp"]
+                        if isinstance(timestamp_value, (int, float)):
+                            # Unix timestamp
+                            post_date = datetime.fromtimestamp(timestamp_value).date()
+                        elif isinstance(timestamp_value, str):
+                            # ISO format string
+                            post_date = datetime.fromisoformat(timestamp_value.replace("Z", "+00:00")).date()
+                    except Exception as e:
+                        logger.debug(f"Could not parse Facebook timestamp: {item.get('timestamp')}, error: {e}")
+                        pass
+                elif "createdAt" in item:
+                    try:
+                        # Facebook createdAt is usually ISO format
+                        post_date = datetime.fromisoformat(str(item["createdAt"]).replace("Z", "+00:00")).date()
+                    except Exception as e:
+                        logger.debug(f"Could not parse Facebook createdAt: {item.get('createdAt')}, error: {e}")
+                        pass
             
             # If we couldn't extract date, include the post (better to include than exclude)
             if not post_date:
