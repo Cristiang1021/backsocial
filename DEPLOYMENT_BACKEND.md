@@ -96,11 +96,38 @@ Una vez que tengas la URL de tu frontend desplegado:
    ```
 5. **Render redeploy automáticamente** al detectar cambios en variables de entorno
 
+## 🗄️ Paso 2.5: Configurar Base de Datos PostgreSQL (IMPORTANTE)
+
+**⚠️ CRÍTICO**: Para que los datos persistan cuando el servidor se reinicia, necesitas una base de datos PostgreSQL:
+
+1. **En Render Dashboard**, ve a "New" → "PostgreSQL"
+2. **Configura la base de datos:**
+   - **Name**: `social-media-analytics-db` (o el nombre que prefieras)
+   - **Database**: `social_media_analytics` (o el nombre que prefieras)
+   - **User**: Se genera automáticamente
+   - **Region**: Elige la misma región que tu web service
+   - **Plan**: Free (suficiente para empezar)
+
+3. **Conecta la base de datos al web service:**
+   - Ve a tu Web Service
+   - En la sección "Connections", haz clic en "Link Database"
+   - Selecciona la base de datos PostgreSQL que acabas de crear
+   - Render automáticamente agregará la variable `DATABASE_URL` a tu web service
+
+4. **Verifica que DATABASE_URL esté configurada:**
+   - Ve a tu Web Service → Environment
+   - Deberías ver `DATABASE_URL` con un valor como: `postgresql://user:password@host:port/database`
+   - Si no está, puedes copiarla desde la página de la base de datos
+
+**Nota**: El código detecta automáticamente si `DATABASE_URL` está disponible:
+- Si `DATABASE_URL` existe → usa PostgreSQL (producción)
+- Si no existe → usa SQLite (desarrollo local)
+
 ## 📝 Notas Importantes
 
 1. **Base de datos**: 
-   - Render usa SQLite en el sistema de archivos
-   - Los datos se mantienen incluso si el servicio se duerme
+   - **Producción (Render)**: Usa PostgreSQL (persistente, no se pierde al reiniciar)
+   - **Desarrollo local**: Usa SQLite automáticamente si no hay `DATABASE_URL`
    - ⚠️ En el plan gratuito, si el servicio se duerme, puede tardar ~30-60 segundos en iniciar (cold start)
 
 2. **Cold Start**: 
@@ -139,9 +166,10 @@ Una vez que tengas la URL de tu frontend desplegado:
 - Render redeploy automáticamente al cambiar variables de entorno
 
 ### Base de datos no persiste
-- SQLite se guarda en el sistema de archivos de Render
-- Los datos deberían persistir entre deployments
-- Si pierdes datos, puede ser porque Render recreó el servicio
+- **IMPORTANTE**: Asegúrate de haber creado una base de datos PostgreSQL en Render
+- Verifica que `DATABASE_URL` esté configurada en las variables de entorno del web service
+- Si usas SQLite (solo desarrollo local), los datos pueden perderse al reiniciar el servicio
+- PostgreSQL es persistente y los datos se mantienen incluso si el servicio se reinicia
 
 ### El servicio está "dormido"
 - Es normal en el plan gratuito después de 15 min de inactividad

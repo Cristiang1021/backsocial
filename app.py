@@ -16,8 +16,8 @@ from config import (
     set_keywords_negative, get_keywords_negative, set_actor_id, get_actor_id,
     set_default_limit_posts, get_default_limit_posts, set_default_limit_comments,
     get_default_limit_comments, set_auto_skip_recent, get_auto_skip_recent,
-    set_tiktok_date_from, get_tiktok_date_from, set_tiktok_date_to, get_tiktok_date_to,
-    set_tiktok_last_days, get_tiktok_last_days
+    set_date_from, get_date_from, set_date_to, get_date_to,
+    set_last_days, get_last_days
 )
 from db_utils import (
     get_all_profiles, add_profile, delete_profile,
@@ -430,17 +430,17 @@ def show_configuration():
         # Option 1: Last N days
         st.markdown("#### Opción 1: Últimos N días")
         last_days = st.number_input(
-            "Analizar videos de los últimos N días (0 = sin filtro)",
+            "Analizar posts de los últimos N días (0 = sin filtro)",
             min_value=0,
             max_value=365,
-            value=config.get("tiktok_last_days", 7),
-            key="tiktok_last_days",
-            help="Si configuras 7, solo analizará videos de los últimos 7 días"
+            value=config.get("last_days", 7),
+            key="last_days",
+            help="Si configuras 7, solo analizará posts de los últimos 7 días"
         )
-        if st.button("💾 Guardar Días", key="save_tiktok_last_days"):
+        if st.button("💾 Guardar Días", key="save_last_days"):
             days_value = int(last_days)
-            set_tiktok_last_days(days_value)
-            saved_value = get_tiktok_last_days()
+            set_last_days(days_value)
+            saved_value = get_last_days()
             if saved_value == days_value:
                 st.success(f"✅ Configurado para analizar últimos {last_days} días" if last_days > 0 else "✅ Filtro de días desactivado")
             else:
@@ -454,7 +454,7 @@ def show_configuration():
         
         col1, col2 = st.columns(2)
         with col1:
-            date_from_str = config.get("tiktok_date_from")
+            date_from_str = config.get("date_from")
             try:
                 date_from_default = datetime.strptime(date_from_str, "%Y-%m-%d").date() if date_from_str else None
             except:
@@ -462,11 +462,11 @@ def show_configuration():
             date_from = st.date_input(
                 "Fecha desde (opcional)",
                 value=date_from_default,
-                key="tiktok_date_from",
+                key="date_from",
                 help="Fecha de inicio del análisis"
             )
         with col2:
-            date_to_str = config.get("tiktok_date_to")
+            date_to_str = config.get("date_to")
             try:
                 date_to_default = datetime.strptime(date_to_str, "%Y-%m-%d").date() if date_to_str else None
             except:
@@ -474,15 +474,15 @@ def show_configuration():
             date_to = st.date_input(
                 "Fecha hasta (opcional)",
                 value=date_to_default,
-                key="tiktok_date_to",
+                key="date_to",
                 help="Fecha de fin del análisis"
             )
         
-        if st.button("💾 Guardar Rango de Fechas", key="save_tiktok_dates"):
+        if st.button("💾 Guardar Rango de Fechas", key="save_dates"):
             date_from_val = date_from.strftime("%Y-%m-%d") if date_from else None
             date_to_val = date_to.strftime("%Y-%m-%d") if date_to else None
-            set_tiktok_date_from(date_from_val)
-            set_tiktok_date_to(date_to_val)
+            set_date_from(date_from_val)
+            set_date_to(date_to_val)
             st.success("✅ Rango de fechas guardado")
         
         st.info("💡 **Nota:** Si configuras 'últimos N días', ese filtro tiene prioridad sobre el rango de fechas específico.")
