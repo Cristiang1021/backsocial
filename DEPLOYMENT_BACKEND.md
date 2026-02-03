@@ -98,30 +98,25 @@ Una vez que tengas la URL de tu frontend desplegado:
 
 ## 🗄️ Paso 2.5: Configurar Base de Datos PostgreSQL (IMPORTANTE)
 
-**⚠️ CRÍTICO**: Para que los datos persistan cuando el servidor se reinicia, necesitas una base de datos PostgreSQL:
+**⚠️ CRÍTICO**: La conexión a PostgreSQL está hardcodeada en el código para producción.
 
-1. **En Render Dashboard**, ve a "New" → "PostgreSQL"
-2. **Configura la base de datos:**
-   - **Name**: `social-media-analytics-db` (o el nombre que prefieras)
-   - **Database**: `social_media_analytics` (o el nombre que prefieras)
-   - **User**: Se genera automáticamente
-   - **Region**: Elige la misma región que tu web service
-   - **Plan**: Free (suficiente para empezar)
+**Base de datos configurada:**
+- **URL**: Hardcodeada en `db_utils.py`
+- **Database**: `socialm`
+- **Plan**: Free (1 GB de almacenamiento máximo)
+- **⚠️ Límite**: El plan gratuito tiene 1 GB de almacenamiento. Monitorea el uso en Render Dashboard.
 
-3. **Conecta la base de datos al web service:**
-   - Ve a tu Web Service
-   - En la sección "Connections", haz clic en "Link Database"
-   - Selecciona la base de datos PostgreSQL que acabas de crear
-   - Render automáticamente agregará la variable `DATABASE_URL` a tu web service
+**Nota sobre la conexión:**
+- El código usa la conexión PostgreSQL hardcodeada en producción
+- Si existe `DATABASE_URL` en variables de entorno, se usa esa (tiene prioridad)
+- Si no existe `DATABASE_URL`, se usa la conexión hardcodeada
+- En desarrollo local (sin PostgreSQL), usa SQLite automáticamente
 
-4. **Verifica que DATABASE_URL esté configurada:**
-   - Ve a tu Web Service → Environment
-   - Deberías ver `DATABASE_URL` con un valor como: `postgresql://user:password@host:port/database`
-   - Si no está, puedes copiarla desde la página de la base de datos
-
-**Nota**: El código detecta automáticamente si `DATABASE_URL` está disponible:
-- Si `DATABASE_URL` existe → usa PostgreSQL (producción)
-- Si no existe → usa SQLite (desarrollo local)
+**Monitoreo de almacenamiento:**
+- Ve a tu base de datos PostgreSQL en Render Dashboard
+- Revisa la sección "Storage" para ver el uso actual
+- El plan gratuito tiene 1 GB máximo
+- Si necesitas más espacio, considera actualizar a un plan pago
 
 ## 📝 Notas Importantes
 
@@ -146,6 +141,69 @@ Una vez que tengas la URL de tu frontend desplegado:
 5. **Variables de entorno**: 
    - ⚠️ **NUNCA** subas tokens o credenciales al código
    - Siempre usa variables de entorno en Render Dashboard
+
+## 🚨 Problemas Comunes y Soluciones
+
+### Problema 1: El servicio excede su límite de memoria
+
+**Síntomas:**
+- Recibes un email de Render: "Web Service exceeded its memory limit"
+- El servicio se reinicia automáticamente
+- Los datos se pierden (si estás usando SQLite)
+
+**Soluciones:**
+
+1. **Configurar PostgreSQL (CRÍTICO):**
+   - Si no tienes PostgreSQL configurado, los datos se pierden en cada reinicio
+   - Sigue los pasos en la sección "Base de Datos PostgreSQL" arriba
+   - Verifica en los logs que aparezca: `✅ Using PostgreSQL database (production)`
+   - Si ves `⚠️ Using SQLite database`, significa que `DATABASE_URL` no está configurada
+
+2. **Optimización de memoria:**
+   - El modelo de HuggingFace ahora se carga de forma "lazy" (solo cuando se necesita)
+   - Esto reduce el uso de memoria al inicio del servidor
+   - El modelo se carga automáticamente cuando se procesan comentarios
+
+3. **Upgrade del plan de Render:**
+   - El plan gratuito tiene límites de memoria (512 MB)
+   - Si procesas muchos comentarios, considera un plan pago con más memoria
+   - Los planes Starter ($7/mes) tienen 512 MB - 1 GB de RAM
+
+### Problema 2: Los datos se borran al reiniciar
+
+**Causa:** Estás usando SQLite en lugar de PostgreSQL
+
+**Solución:**
+1. Verifica que `DATABASE_URL` esté configurada en Render Dashboard
+2. Revisa los logs al iniciar el servicio:
+   - ✅ Debe decir: `Using PostgreSQL database (production)`
+   - ❌ NO debe decir: `Using SQLite database (development/local)`
+3. Si ves el mensaje de SQLite, configura PostgreSQL siguiendo los pasos arriba
+
+### Verificar la configuración de la base de datos
+
+En los logs de Render, al iniciar el servicio deberías ver:
+
+```
+INFO:db_utils:✅ Using PostgreSQL database (production)
+INFO:db_utils:   Database: socialm (1 GB storage limit on free plan)
+INFO:db_utils:   Using hardcoded production database connection
+INFO:api:Database initialized successfully
+```
+
+Si ves esto, está correcto. Si ves:
+
+```
+WARNING:db_utils:⚠️  Using SQLite database (development/local)
+WARNING:db_utils:   ⚠️  WARNING: SQLite data will be LOST on server restart!
+```
+
+Entonces hay un problema con la conexión PostgreSQL (psycopg2-binary no está instalado o hay un error de conexión).
+
+**Monitoreo de almacenamiento:**
+- El plan gratuito tiene **1 GB máximo** de almacenamiento
+- Monitorea el uso en Render Dashboard → PostgreSQL → Storage
+- Si necesitas más espacio, actualiza a un plan pago
 
 ## 🐛 Troubleshooting
 

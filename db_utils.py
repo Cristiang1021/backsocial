@@ -26,13 +26,34 @@ except ImportError:
 
 # Database configuration
 DB_PATH = Path("social_media_analytics.db")
-DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Hardcoded production PostgreSQL URL (Render)
+PRODUCTION_DATABASE_URL = "postgresql://socialm_user:oShfmZGuaVNQD9GKA0ha1pTyOmWdRYN9@dpg-d60mks63jp1c73a8vrtg-a/socialm"
+
+# Try to get DATABASE_URL from environment, fallback to hardcoded production URL
+DATABASE_URL = os.getenv("DATABASE_URL") or PRODUCTION_DATABASE_URL
 
 # Determine which database to use
 USE_POSTGRES = PSYCOPG2_AVAILABLE and DATABASE_URL is not None
 USE_SQLITE = not USE_POSTGRES and SQLITE_AVAILABLE
 
-if not USE_POSTGRES and not USE_SQLITE:
+# Log which database is being used
+import logging
+logger = logging.getLogger(__name__)
+
+if USE_POSTGRES:
+    logger.info(f"✅ Using PostgreSQL database (production)")
+    logger.info(f"   Database: socialm (1 GB storage limit on free plan)")
+    # Don't log the full URL for security, just confirm it's configured
+    if DATABASE_URL == PRODUCTION_DATABASE_URL:
+        logger.info(f"   Using hardcoded production database connection")
+    else:
+        logger.info(f"   Using DATABASE_URL from environment")
+elif USE_SQLITE:
+    logger.warning(f"⚠️  Using SQLite database (development/local)")
+    logger.warning(f"   ⚠️  WARNING: SQLite data will be LOST on server restart!")
+    logger.warning(f"   ⚠️  PostgreSQL not available - check psycopg2-binary installation")
+else:
     raise RuntimeError("Neither PostgreSQL nor SQLite is available. Please install psycopg2-binary or ensure SQLite is available.")
 
 
