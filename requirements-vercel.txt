@@ -1,0 +1,11 @@
+# Vercel: versión mínima para caber en 250MB (sin matplotlib, sin psycopg2)
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.0.0
+apify-client>=1.4.0
+tenacity>=8.2.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+reportlab>=4.0.0
+Pillow>=10.0.0
+libsql-client>=0.3.0

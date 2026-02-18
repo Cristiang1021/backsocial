@@ -13,11 +13,14 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
 from reportlab.pdfgen import canvas
 from reportlab.lib.colors import HexColor
-import matplotlib
-matplotlib.use('Agg')  # Use non-interactive backend
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from matplotlib.backends.backend_agg import FigureCanvasAgg
+try:
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    _MATPLOTLIB_AVAILABLE = True
+except ImportError:
+    _MATPLOTLIB_AVAILABLE = False
+    plt = None
 import logging
 
 logger = logging.getLogger(__name__)
@@ -368,7 +371,10 @@ class PDFGenerator:
         self.story.append(Spacer(1, 0.1*inch))
     
     def add_pie_chart(self, data: Dict[str, float], title: str, width: float = 5*inch, height: float = 4*inch):
-        """Agrega un gráfico de pastel al PDF."""
+        """Agrega un gráfico de pastel al PDF (o tabla si matplotlib no está instalado)."""
+        if not _MATPLOTLIB_AVAILABLE or not plt:
+            self._add_chart_as_table(data, title)
+            return
         try:
             fig, ax = plt.subplots(figsize=(width/72, height/72))
             
@@ -405,8 +411,30 @@ class PDFGenerator:
             logger.error(f"Error creando gráfico de pastel: {e}", exc_info=True)
             self.story.append(Paragraph(f"Error al generar gráfico: {title}", self.styles['CustomBodyText']))
     
+    def _add_chart_as_table(self, data: Dict[str, float], title: str):
+        """Fallback: muestra datos como tabla cuando matplotlib no está disponible."""
+        self.story.append(Paragraph(f"<b>{title}</b>", self.styles['Section']))
+        rows = [["Categoría", "Valor"]]
+        for k, v in data.items():
+            rows.append([str(k), f"{v:.1f}" if isinstance(v, float) else str(v)])
+        t = Table(rows)
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), COLOR_HEADER),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('BACKGROUND', (0, 1), (-1, -1), COLOR_BG),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ]))
+        self.story.append(t)
+        self.story.append(Spacer(1, 0.2*inch))
+
     def add_bar_chart(self, data: Dict[str, float], title: str, xlabel: str = "", ylabel: str = "", width: float = 7*inch, height: float = 4*inch, colors_map: Optional[Dict[str, str]] = None):
-        """Agrega un gráfico de barras al PDF."""
+        """Agrega un gráfico de barras al PDF (o tabla si matplotlib no está instalado)."""
+        if not _MATPLOTLIB_AVAILABLE or not plt:
+            self._add_chart_as_table(data, title)
+            return
         try:
             fig, ax = plt.subplots(figsize=(width/72, height/72))
             
