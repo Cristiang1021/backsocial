@@ -414,10 +414,12 @@ def get_config(key: str, default: Any = None) -> Any:
         row = cursor.fetchone()
         
         if row:
+            # Turso devuelve dict (row["value"]), Postgres/SQLite pueden devolver tuple (row[0])
+            val = row["value"] if isinstance(row, dict) else row[0]
             try:
-                return json.loads(row[0])
+                return json.loads(val)
             except json.JSONDecodeError:
-                return row[0]
+                return val
         return default
     finally:
         conn.close()
@@ -486,6 +488,8 @@ def get_profile_by_id(profile_id: int) -> Optional[Dict[str, Any]]:
             return None
         if USE_POSTGRES:
             d = dict(row)
+        elif isinstance(row, dict):
+            d = row
         else:
             d = dict(zip([c[0] for c in cursor.description], row))
         if "apify_token_key" not in d:
@@ -528,8 +532,8 @@ def add_profile(platform: str, username_or_url: str, display_name: Optional[str]
             existing = cursor.fetchone()
             
             if existing:
-                # Profile already exists, return its ID
-                profile_id = existing[0]
+                # Profile already exists, return its ID (Turso devuelve dict, SQLite tuple)
+                profile_id = existing["id"] if isinstance(existing, dict) else existing[0]
             else:
                 # Profile doesn't exist, insert it
                 cursor.execute("""
@@ -660,8 +664,8 @@ def insert_post(
             existing = cursor.fetchone()
             
             if existing:
-                # Post exists, update it (prevent duplicate)
-                post_db_id = existing[0]
+                # Post exists, update it (prevent duplicate) (Turso devuelve dict, SQLite tuple)
+                post_db_id = existing["id"] if isinstance(existing, dict) else existing[0]
                 logger.debug(f"Post already exists (platform={platform}, post_id={post_id[:50]}), updating instead of duplicating")
                 cursor.execute("""
                     UPDATE posts SET
@@ -713,8 +717,8 @@ def get_post_profile_and_platform(post_id: int) -> Optional[Tuple[int, str]]:
         row = cursor.fetchone()
         if not row:
             return None
-        if USE_POSTGRES and hasattr(row, "keys"):
-            return (row["profile_id"], (row["platform"] or "").lower())
+        if isinstance(row, dict) or hasattr(row, "keys"):
+            return (row["profile_id"], (row.get("platform") or "").lower())
         return (row[0], (row[1] or "").lower())
     finally:
         conn.close()
@@ -931,6 +935,8 @@ def get_post_by_url(url: str, profile_id: Optional[int] = None) -> Optional[Dict
             return None
         if USE_POSTGRES:
             return dict(row)
+        if isinstance(row, dict):
+            return row
         return dict(zip([c[0] for c in cursor.description], row))
     finally:
         conn.close()
@@ -1044,6 +1050,8 @@ def get_comments_without_sentiment(
         rows = cursor.fetchall()
         if USE_POSTGRES:
             return [dict(r) for r in rows]
+        if rows and isinstance(rows[0], dict):
+            return [dict(r) for r in rows]
         return [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
     finally:
         conn.close()
@@ -1113,8 +1121,8 @@ def get_sentiment_stats(profile_id: Optional[int] = None, platform: Optional[str
         total = 0
         
         for row in rows:
-            label = row[0]
-            count = row[1]
+            label = row["sentiment_label"] if isinstance(row, dict) else row[0]
+            count = row["count"] if isinstance(row, dict) else row[1]
             stats[label] = count
             total += count
         
