@@ -1,10 +1,23 @@
-# Backend FastAPI - Vercel detecta la app por este script
+# Backend FastAPI - Vercel detecta la app por este script e instala de aquí
 [project]
 name = "social-media-analytics-api"
 version = "1.0.0"
 description = "API REST para dashboard de redes sociales (front_template)"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.0.0",
+    "apify-client>=1.4.0",
+    "tenacity>=8.2.0",
+    "requests>=2.31.0",
+    "python-dotenv>=1.0.0",
+    "reportlab>=4.0.0",
+    "Pillow>=10.0.0",
+    "psycopg2-binary>=2.9.9",
+    "libsql-client>=0.3.0",
+    "matplotlib>=3.7.0",
+]
 
 [project.scripts]
 app = "api:app"
