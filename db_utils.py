@@ -113,8 +113,12 @@ class _TursoCursorWrapper:
 class _TursoConnectionWrapper:
     """Conexión que imita sqlite3/psycopg2 para usar Turso vía libsql_client."""
     def __init__(self):
+        url = TURSO_DATABASE_URL.strip()
+        # Turso usa HTTP, no WebSocket. libsql:// → wss y falla con 505. Forzar https.
+        if url.startswith("libsql://"):
+            url = "https://" + url[len("libsql://"):]
         self._client = libsql_client.create_client_sync(
-            TURSO_DATABASE_URL.strip(),
+            url,
             auth_token=TURSO_AUTH_TOKEN.strip(),
         )
 
