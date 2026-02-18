@@ -365,16 +365,33 @@ def init_database() -> None:
                 pass
         
         # Migración: columna apify_token_key en profiles (qué API key usar: facebook_1, facebook_2, instagram, tiktok)
-        try:
-            if USE_POSTGRES:
-                cursor.execute("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS apify_token_key VARCHAR(50)")
-            else:
-                cursor.execute("ALTER TABLE profiles ADD COLUMN apify_token_key TEXT")
-        except Exception as e:
-            if "duplicate column" in str(e).lower() or "already exists" in str(e).lower():
-                pass
-            else:
-                raise
+        # Para Turso/SQLite: comprobar primero si existe (evita KeyError en libsql_client cuando Turso devuelve error)
+        col_exists = False
+        if USE_POSTGRES:
+            cursor.execute(
+                "SELECT column_name FROM information_schema.columns WHERE table_name='profiles' AND column_name='apify_token_key'"
+            )
+            col_exists = cursor.fetchone() is not None
+        else:
+            cursor.execute("PRAGMA table_info(profiles)")
+            rows = cursor.fetchall()
+            # rows: dict (Turso) o tuple (SQLite) - name es columna 1
+            for r in rows:
+                col_name = r["name"] if isinstance(r, dict) else r[1]
+                if col_name == "apify_token_key":
+                    col_exists = True
+                    break
+        if not col_exists:
+            try:
+                if USE_POSTGRES:
+                    cursor.execute("ALTER TABLE profiles ADD COLUMN apify_token_key VARCHAR(50)")
+                else:
+                    cursor.execute("ALTER TABLE profiles ADD COLUMN apify_token_key TEXT")
+            except Exception as e:
+                if "duplicate column" in str(e).lower() or "already exists" in str(e).lower():
+                    pass
+                else:
+                    raise
         
         conn.commit()
     except Exception as e:
