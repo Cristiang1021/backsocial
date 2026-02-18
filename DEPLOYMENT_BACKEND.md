@@ -144,30 +144,42 @@ Una vez que tengas la URL de tu frontend desplegado:
 
 ## 🚨 Problemas Comunes y Soluciones
 
-### Problema 1: El servicio excede su límite de memoria
+### Problema 1: El servicio excede su límite de memoria RAM
 
 **Síntomas:**
-- Recibes un email de Render: "Web Service exceeded its memory limit"
+- Recibes un email de Render: "Ran out of memory (used over 512MB)"
 - El servicio se reinicia automáticamente
-- Los datos se pierden (si estás usando SQLite)
+- Error: "Instance failed: Ran out of memory"
+
+**Causa:**
+- El plan **Free** de Render tiene solo **512 MB de RAM**
+- El modelo de HuggingFace (`cardiffnlp/twitter-xlm-roberta-base-sentiment`) es grande y consume mucha memoria
+- Aunque el modelo se carga de forma "lazy", cuando se carga consume ~300-500 MB de RAM
+- Con el servidor base + modelo + procesamiento, se supera el límite de 512 MB
 
 **Soluciones:**
 
-1. **Configurar PostgreSQL (CRÍTICO):**
-   - Si no tienes PostgreSQL configurado, los datos se pierden en cada reinicio
-   - Sigue los pasos en la sección "Base de Datos PostgreSQL" arriba
-   - Verifica en los logs que aparezca: `✅ Using PostgreSQL database (production)`
-   - Si ves `⚠️ Using SQLite database`, significa que `DATABASE_URL` no está configurada
+1. **Upgrade a plan Starter (RECOMENDADO):**
+   - El plan **Starter** ($7/mes) tiene **512 MB - 1 GB de RAM**
+   - Esto es suficiente para el modelo y el procesamiento
+   - Ya cambiaste a Starter según los logs, esto debería solucionar el problema
 
-2. **Optimización de memoria:**
-   - El modelo de HuggingFace ahora se carga de forma "lazy" (solo cuando se necesita)
-   - Esto reduce el uso de memoria al inicio del servidor
-   - El modelo se carga automáticamente cuando se procesan comentarios
+2. **Optimizaciones implementadas:**
+   - ✅ Modelo se carga de forma "lazy" (solo cuando se necesita)
+   - ✅ Usa CPU en lugar de GPU (ahorra memoria)
+   - ✅ Procesa comentarios uno por uno (batch_size=1)
+   - ✅ Intenta usar float16 para reducir memoria (si el modelo lo soporta)
+   - ✅ Limpieza de memoria periódica con garbage collection
 
-3. **Upgrade del plan de Render:**
-   - El plan gratuito tiene límites de memoria (512 MB)
-   - Si procesas muchos comentarios, considera un plan pago con más memoria
-   - Los planes Starter ($7/mes) tienen 512 MB - 1 GB de RAM
+3. **Si aún tienes problemas de memoria:**
+   - Considera usar un modelo más ligero (configurable en settings)
+   - Procesa menos comentarios por vez
+   - Actualiza a un plan con más RAM (Starter Plus, Standard, etc.)
+
+**Nota importante:**
+- **RAM (memoria)** ≠ **Almacenamiento de BD**
+- El problema es de **RAM** (memoria temporal para ejecutar el código)
+- El almacenamiento de PostgreSQL (1 GB) es diferente y está bien
 
 ### Problema 2: Los datos se borran al reiniciar
 

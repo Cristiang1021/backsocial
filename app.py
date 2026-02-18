@@ -12,6 +12,10 @@ import logging
 
 from config import (
     ensure_database_initialized, get_all_config, set_apify_token, get_apify_token,
+    set_apify_token_facebook_1, get_apify_token_facebook_1,
+    set_apify_token_facebook_2, get_apify_token_facebook_2,
+    set_apify_token_instagram, get_apify_token_instagram,
+    set_apify_token_tiktok, get_apify_token_tiktok,
     set_huggingface_model, get_huggingface_model, set_keywords_positive, get_keywords_positive,
     set_keywords_negative, get_keywords_negative, set_actor_id, get_actor_id,
     set_default_limit_posts, get_default_limit_posts, set_default_limit_comments,
@@ -20,7 +24,7 @@ from config import (
     set_last_days, get_last_days
 )
 from db_utils import (
-    get_all_profiles, add_profile, delete_profile,
+    get_all_profiles, add_profile, delete_profile, update_profile_apify_token_key,
     get_posts_for_dashboard, get_comments_for_dashboard, get_sentiment_stats
 )
 from utils import normalize_username_or_url
@@ -244,6 +248,19 @@ def show_configuration():
             if st.button("💾 Guardar Token", key="save_apify_token"):
                 set_apify_token(apify_token)
                 st.success("✅ Token guardado correctamente")
+        
+        st.markdown("#### Tokens por plataforma (repartir cuota)")
+        st.markdown("Opcional: una API key para cada tipo de perfil para no gastar todo en un solo token.")
+        t_fb1 = st.text_input("Token Apify Facebook (perfil 1)", value=config.get("apify_token_facebook_1") or "", type="password", key="apify_fb1")
+        t_fb2 = st.text_input("Token Apify Facebook (perfil 2)", value=config.get("apify_token_facebook_2") or "", type="password", key="apify_fb2")
+        t_ig = st.text_input("Token Apify Instagram", value=config.get("apify_token_instagram") or "", type="password", key="apify_ig")
+        t_tt = st.text_input("Token Apify TikTok", value=config.get("apify_token_tiktok") or "", type="password", key="apify_tt")
+        if st.button("💾 Guardar tokens por plataforma", key="save_apify_tokens_platform"):
+            set_apify_token_facebook_1(t_fb1 or "")
+            set_apify_token_facebook_2(t_fb2 or "")
+            set_apify_token_instagram(t_ig or "")
+            set_apify_token_tiktok(t_tt or "")
+            st.success("✅ Tokens por plataforma guardados")
         
         # Show usage info if token is configured
         if apify_token:
@@ -556,11 +573,25 @@ def show_profiles():
                             <h4 style='margin: 0; color: #2c3e50;'>{profile['username_or_url']}</h4>
                             <p style='margin: 0.5rem 0; color: #7f8c8d; font-size: 0.9rem;'>
                                 <strong>Plataforma:</strong> {profile['platform']}<br>
-                                <strong>Último análisis:</strong> {profile['last_analyzed'][:10] if profile['last_analyzed'] else 'Nunca'}
+                                <strong>Último análisis:</strong> {profile['last_analyzed'][:10] if profile.get('last_analyzed') else 'Nunca'}
                             </p>
                         </div>
                         """, unsafe_allow_html=True)
-                        
+                        # Asignar API key a este perfil (facebook_1, facebook_2, instagram, tiktok)
+                        opts = ["", "facebook_1", "facebook_2", "instagram", "tiktok"]
+                        current = (profile.get("apify_token_key") or "").strip()
+                        idx = opts.index(current) if current in opts else 0
+                        token_key = st.selectbox(
+                            "API key",
+                            options=opts,
+                            format_func=lambda x: "Auto (por plataforma)" if x == "" else x,
+                            index=idx,
+                            key=f"token_key_{profile['id']}"
+                        )
+                        if st.button("💾 Guardar API key", key=f"save_tk_{profile['id']}"):
+                            update_profile_apify_token_key(profile["id"], token_key.strip() or None)
+                            st.success("✅ API key del perfil guardada")
+                            st.rerun()
                         if st.button("🗑️ Eliminar", key=f"delete_{profile['id']}", width='stretch'):
                             if delete_profile(profile['id']):
                                 st.success(f"✅ Perfil eliminado: {profile['username_or_url']}")
@@ -612,8 +643,8 @@ def show_analysis():
     
     # Run analysis button
     if st.button("🚀 Correr Análisis Fresco", type="primary", width='stretch'):
-        if not get_apify_token():
-            st.error("❌ Token de Apify no configurado. Ve a 'Configuración' para configurarlo.")
+        if not has_any_apify_token():
+            st.error("❌ Ningún token de Apify configurado. Ve a Configuración → API & Tokens (token por defecto o por plataforma).")
             return
         
         progress_bar = st.progress(0)

@@ -6,11 +6,25 @@ from typing import Any, Dict, List, Optional
 from db_utils import get_config, set_config, init_database
 
 # Default configuration values
+# API keys por plataforma/perfil: una para cada perfil Facebook, una Instagram, una TikTok
 DEFAULT_CONFIG = {
-    "apify_token": "",
+    "apify_token": "",  # Token por defecto (fallback)
+    "apify_token_facebook_1": "",
+    "apify_token_facebook_2": "",
+    "apify_token_instagram": "",
+    "apify_token_tiktok": "",
     "huggingface_model": "cardiffnlp/twitter-xlm-roberta-base-sentiment",
-    "keywords_positive": ["excelente", "recomiendo", "genial", "perfecto", "amazing", "great", "love", "best"],
-    "keywords_negative": ["malo", "horrible", "terrible", "pésimo", "bad", "worst", "hate", "disappointed"],
+    # Afinadas para comentarios de redes (Riobamba/EC): positivas y negativas
+    "keywords_positive": [
+        "excelente", "exelente", "recomiendo", "genial", "perfecto", "amazing", "great", "love", "best",
+        "chevere", "chévere", "maravilla", "disfrute", "hermosura", "bienvenido", "dale", "desarrollo",
+        "despertando", "gusto", "balneario", "visitar", "carnaval",
+    ],
+    "keywords_negative": [
+        "malo", "horrible", "terrible", "pésimo", "bad", "worst", "hate", "disappointed",
+        "mierda", "asco", "huecos", "polvo", "delincuencia", "reelección", "pagaron", "puro polvo",
+        "no hace nada", "no hace", "tierra", "inconcluso", "abandonado", "bache", "dejaron",
+    ],
     "actor_instagram_posts": "shu8hvrXbJbY3Eb9W",
     "actor_instagram_comments": "instagram-comment-scraper",
     "actor_tiktok_posts": "GdWCkxBtKWOsKjdch",  # clockworks/tiktok-scraper (the correct actor)
@@ -44,6 +58,97 @@ def get_apify_token() -> str:
 def set_apify_token(token: str) -> None:
     """Set Apify API token in configuration."""
     set_config("apify_token", token)
+
+
+# Tokens por plataforma/perfil (repartir cuota: Facebook x2, Instagram, TikTok)
+def _get_apify_token_key(key: str) -> str:
+    return get_config(key, "")
+
+
+def _set_apify_token_key(key: str, token: str) -> None:
+    set_config(key, token)
+
+
+def get_apify_token_facebook_1() -> str:
+    return _get_apify_token_key("apify_token_facebook_1")
+
+
+def set_apify_token_facebook_1(token: str) -> None:
+    _set_apify_token_key("apify_token_facebook_1", token)
+
+
+def get_apify_token_facebook_2() -> str:
+    return _get_apify_token_key("apify_token_facebook_2")
+
+
+def set_apify_token_facebook_2(token: str) -> None:
+    _set_apify_token_key("apify_token_facebook_2", token)
+
+
+def get_apify_token_instagram() -> str:
+    return _get_apify_token_key("apify_token_instagram")
+
+
+def set_apify_token_instagram(token: str) -> None:
+    _set_apify_token_key("apify_token_instagram", token)
+
+
+def get_apify_token_tiktok() -> str:
+    return _get_apify_token_key("apify_token_tiktok")
+
+
+def set_apify_token_tiktok(token: str) -> None:
+    _set_apify_token_key("apify_token_tiktok", token)
+
+
+def has_any_apify_token() -> bool:
+    """True si hay al menos un token configurado (por defecto o por plataforma)."""
+    return bool(
+        (get_apify_token() or "").strip()
+        or (get_apify_token_facebook_1() or "").strip()
+        or (get_apify_token_facebook_2() or "").strip()
+        or (get_apify_token_instagram() or "").strip()
+        or (get_apify_token_tiktok() or "").strip()
+    )
+
+
+def get_apify_token_for_profile(profile_id: Optional[int] = None, profile: Optional[Dict[str, Any]] = None) -> str:
+    """
+    Devuelve el token de Apify a usar para un perfil.
+    - Si el perfil tiene apify_token_key (facebook_1, facebook_2, instagram, tiktok), usa ese token.
+    - Si no: Instagram → token Instagram; TikTok → token TikTok; Facebook → por orden de perfil:
+      primer perfil Facebook (por id) usa facebook_1, el segundo facebook_2, etc.
+    """
+    from db_utils import get_profile_by_id, get_all_profiles
+    p = profile or (get_profile_by_id(profile_id) if profile_id else None)
+    if not p:
+        return get_apify_token()
+    pid = p.get("id") or profile_id
+    key = (p.get("apify_token_key") or "").strip()
+    if key:
+        token = get_config(f"apify_token_{key}", "")
+        if token:
+            return token
+    platform = (p.get("platform") or "").lower()
+    if platform == "facebook":
+        t1, t2 = get_apify_token_facebook_1(), get_apify_token_facebook_2()
+        # Sin key asignada: primer perfil Facebook = facebook_1, segundo = facebook_2
+        all_profiles = get_all_profiles()
+        facebook_ids = sorted([pr["id"] for pr in all_profiles if (pr.get("platform") or "").lower() == "facebook"])
+        try:
+            idx = facebook_ids.index(pid)
+            if idx == 0 and t1:
+                return t1
+            if idx == 1 and t2:
+                return t2
+        except (ValueError, TypeError):
+            pass
+        return t1 or t2 or get_apify_token()
+    if platform == "instagram":
+        return get_apify_token_instagram() or get_apify_token()
+    if platform == "tiktok":
+        return get_apify_token_tiktok() or get_apify_token()
+    return get_apify_token()
 
 
 def get_huggingface_model() -> str:
@@ -96,22 +201,24 @@ def set_actor_id(platform: str, actor_type: str, actor_id: str) -> None:
 
 def get_default_limit_posts() -> int:
     """Get default limit for number of posts to scrape."""
-    return get_config("default_limit_posts", DEFAULT_CONFIG["default_limit_posts"])
+    v = get_config("default_limit_posts", DEFAULT_CONFIG["default_limit_posts"])
+    return int(v) if v is not None else DEFAULT_CONFIG["default_limit_posts"]
 
 
 def set_default_limit_posts(limit: int) -> None:
     """Set default limit for number of posts to scrape."""
-    set_config("default_limit_posts", limit)
+    set_config("default_limit_posts", int(limit))
 
 
 def get_default_limit_comments() -> int:
     """Get default limit for number of comments per post."""
-    return get_config("default_limit_comments", DEFAULT_CONFIG["default_limit_comments"])
+    v = get_config("default_limit_comments", DEFAULT_CONFIG["default_limit_comments"])
+    return int(v) if v is not None else DEFAULT_CONFIG["default_limit_comments"]
 
 
 def set_default_limit_comments(limit: int) -> None:
     """Set default limit for number of comments per post."""
-    set_config("default_limit_comments", limit)
+    set_config("default_limit_comments", int(limit))
 
 
 def get_auto_skip_recent() -> bool:
@@ -163,6 +270,10 @@ def get_all_config() -> Dict[str, Any]:
     """Get all configuration as a dictionary."""
     return {
         "apify_token": get_apify_token(),
+        "apify_token_facebook_1": get_apify_token_facebook_1(),
+        "apify_token_facebook_2": get_apify_token_facebook_2(),
+        "apify_token_instagram": get_apify_token_instagram(),
+        "apify_token_tiktok": get_apify_token_tiktok(),
         "huggingface_model": get_huggingface_model(),
         "keywords_positive": get_keywords_positive(),
         "keywords_negative": get_keywords_negative(),

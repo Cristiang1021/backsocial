@@ -4,9 +4,8 @@ API REST (FastAPI) para análisis de redes sociales (Instagram, TikTok, Facebook
 
 ## 🌐 Deployment
 
-Este backend está listo para desplegarse en **Render**.
-
-📖 **Ver [DEPLOYMENT_BACKEND.md](./DEPLOYMENT_BACKEND.md) para instrucciones completas de deployment**
+- **Vercel + Turso**: listo para producción. Ver **[DEPLOY_VERCEL.md](./DEPLOY_VERCEL.md)** (variables `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, etc.).
+- **Render**: ver [DEPLOYMENT_BACKEND.md](./DEPLOYMENT_BACKEND.md).
 
 ## 🚀 Características
 
@@ -170,7 +169,14 @@ El sistema usa un enfoque híbrido:
 - ✅ **Nunca subas tokens o credenciales a GitHub**
 - ✅ Usa variables de entorno para información sensible
 - ✅ El archivo `.gitignore` está configurado para excluir archivos sensibles
-- ✅ En producción, configura los tokens desde Render Dashboard
+- ✅ En producción (Vercel/Render), configura los tokens desde el dashboard o variables de entorno
+
+## 📤 Antes de subir a GitHub
+
+1. **No subas secretos**: asegúrate de no tener `.env` con tokens (ya está en `.gitignore`).
+2. **No subas la base local**: `*.db` y `social_media_analytics.db` están en `.gitignore`; si ya la tenías trackeada, ejecuta `git rm --cached social_media_analytics.db` y haz commit.
+3. **Sube solo el backend**: `front_template/` está en `.gitignore`; el front se despliega por separado.
+4. Luego: `git add .` → `git commit -m "Backend listo para producción (Vercel + Turso)"` → `git push`.
 
 ## 📄 Licencia
 

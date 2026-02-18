@@ -1,13 +1,22 @@
-streamlit>=1.28.0
-apify-client>=1.4.0
-pandas>=2.0.0
-plotly>=5.17.0
-transformers>=4.35.0
-torch>=2.1.0
-python-dotenv>=1.0.0
-tenacity>=8.2.0
-requests>=2.31.0
+# Backend API only - listo para Vercel (sin Streamlit, sin modelo pesado de sentimiento)
+# El análisis de sentimiento usa solo keywords en Vercel para evitar consumo de memoria.
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
 pydantic>=2.0.0
+apify-client>=1.4.0
+tenacity>=8.2.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+reportlab>=4.0.0
+Pillow>=10.0.0
+# BD: SQLite (incluido en Python), Postgres (DATABASE_URL) o Turso (TURSO_*)
 psycopg2-binary>=2.9.9
+libsql-client>=0.3.0
+
+# Gráficos para reporte PDF (ligero, backend Agg)
+matplotlib>=3.7.0
+
+# Opcional: para análisis de sentimiento con modelo (pesado, no recomendado en Vercel)
+# Descomenta si despliegas en Render/VPS y quieres el modelo HuggingFace:
+# transformers>=4.35.0
+# torch>=2.1.0
